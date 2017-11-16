@@ -21,7 +21,7 @@ public class BoardEvaluator {
     }
 
     private static boolean checkForDraw(final Board board) {
-        List<String> values = Arrays.asList(board.getValues());
+        List<String> values = Arrays.asList(board.getBoard());
         return values.stream()
                 .noneMatch(value -> value.equals(FieldValue.EMPTY.getValue()));
     }
@@ -29,7 +29,7 @@ public class BoardEvaluator {
     private static boolean checkForWin(final Board board, final FieldValue fieldValue) {
         List<WinSituation> situations = Arrays.asList(WinSituation.getAllWinSituations());
         return situations.stream()
-                .anyMatch(winPos -> isWin(board.getValues(), winPos.getBoardIndexes(), fieldValue.getValue()));
+                .anyMatch(winPos -> isWin(board.getBoard(), winPos.getBoardIndexes(), fieldValue.getValue()));
     }
 
     private static boolean isWin(final String[] boardValues, final int[] winPos, final String playerValue) {

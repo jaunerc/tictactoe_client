@@ -1,14 +1,14 @@
 package ch.jaunerc.ttt_client.controller;
 
-import ch.jaunerc.ttt_client.tictactoe.Board;
-import ch.jaunerc.ttt_client.tictactoe.FieldValue;
-import ch.jaunerc.ttt_client.tictactoe.Game;
-import ch.jaunerc.ttt_client.tictactoe.Player;
+import ch.jaunerc.ttt_client.jersey.RestConnectionHandler;
+import ch.jaunerc.ttt_client.tictactoe.*;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
+
+import java.net.URI;
 
 public class TttViewController {
 
@@ -18,6 +18,7 @@ public class TttViewController {
     private Game game;
     private GraphicsContext gc;
     private MouseClickHandler mouseClickHandler;
+    private RestConnectionHandler restConnectionHandler;
 
     public TttViewController() {
 
@@ -31,9 +32,14 @@ public class TttViewController {
 
     private void initGame() {
         final Board board = new Board();
-        final Player playerOne = new Player(FieldValue.CROSS);
-        final Player playerTwo = new Player(FieldValue.NOUGHT);
+        final Player playerOne = new Player(FieldValue.NOUGHT);
+        final AiPlayer playerTwo = new AiPlayer(FieldValue.CROSS);
         game = new Game(board, playerOne, playerTwo);
+        try {
+            restConnectionHandler = new RestConnectionHandler(new URI("http://localhost:8080/minimax"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void initCanvas() {
@@ -52,8 +58,6 @@ public class TttViewController {
         mouseClickHandler = new MouseClickHandler();
         mouseClickHandler.setBoardStartX(horizontalPadding);
         mouseClickHandler.setBoardStartY(verticalPadding);
-        mouseClickHandler.setBoardEndX(canvasWidth - verticalPadding);
-        mouseClickHandler.setBoardEndY(canvasHeight - horizontalPadding);
         mouseClickHandler.initAreas(horizontalSpaceBetweenLines, verticalSpaceBetweenLines, gc.getLineWidth());
 
         tttCanvas.setOnMouseClicked(e -> handleMouseClick(e));
@@ -61,6 +65,12 @@ public class TttViewController {
 
     private void handleMouseClick(final MouseEvent event) {
         final ClickArea clickArea = mouseClickHandler.getClickedArea(event);
+        drawCrossOrNought(clickArea);
+        game.move(clickArea.getAreaNumber());
+        handleAiMove();
+    }
+
+    private void drawCrossOrNought(final ClickArea clickArea) {
         switch (game.getCurrentFieldValue()) {
             case CROSS:
                 drawCross(clickArea);
@@ -68,7 +78,24 @@ public class TttViewController {
             case NOUGHT:
                 drawNought(clickArea);
         }
-        game.move(clickArea.getAreaNumber());
+    }
+
+    private void handleAiMove() {
+        if (game.getCurrentPlayer() instanceof AiPlayer) {
+            System.out.println("Ai turn");
+            final Board current = game.getBoard();
+            final Board next = restConnectionHandler.getNextTurn(current);
+            final String[] currentBoard = current.getBoard();
+            final String[] nextBoard = next.getBoard();
+            for (int i = 0; i < nextBoard.length; i++) {
+                if (!nextBoard[i].equals(currentBoard[i])) {
+                    final ClickArea clickArea = mouseClickHandler.getAreaByIndex(i);
+                    drawCrossOrNought(clickArea);
+                    game.move(i);
+                    break;
+                }
+            }
+        }
     }
 
     private void overwriteCanvas() {

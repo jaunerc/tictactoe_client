@@ -63,4 +63,12 @@ public class Game {
     public FieldValue getCurrentFieldValue() {
         return currentPlayer.getFieldValue();
     }
+
+    public Board getBoard() {
+        return board;
+    }
+
+    public Player getCurrentPlayer() {
+        return currentPlayer;
+    }
 }

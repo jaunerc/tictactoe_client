@@ -2,10 +2,13 @@ package ch.jaunerc.ttt_client.controller;
 
 import ch.jaunerc.ttt_client.jersey.RestConnectionHandler;
 import ch.jaunerc.ttt_client.tictactoe.*;
+import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 
@@ -19,12 +22,23 @@ public class TttViewController {
 
     @FXML
     private Canvas tttCanvas;
+    @FXML
+    private Button restartButton;
+    @FXML
+    private Button exitButton;
+    @FXML
+    private Label currentPlayerLabel;
 
     private Game game;
     private GraphicsContext gc;
     private ClickAreaMapper ClickAreaMapper;
     private EventHandler<MouseEvent> mouseClickEventHandler;
     private RestConnectionHandler restConnectionHandler;
+
+    private double verticalPadding;
+    private double horizontalPadding;
+    private double verticalSpaceBetweenLines;
+    private double horizontalSpaceBetweenLines;
 
     public TttViewController() {
     }
@@ -33,6 +47,7 @@ public class TttViewController {
     private void initialize() {
         initGame();
         initCanvas();
+        initUiControls();
     }
 
     private void initGame() {
@@ -50,21 +65,20 @@ public class TttViewController {
     private void initCanvas() {
         final double canvasWidth = tttCanvas.getWidth();
         final double canvasHeight = tttCanvas.getHeight();
-        final double verticalPadding = 0.1 * canvasHeight;
+        verticalPadding = 0.1 * canvasHeight;
         final double verticalLineLength = canvasHeight - 2 * verticalPadding;
-        final double horizontalPadding = 0.1 * canvasWidth;
+        horizontalPadding = 0.1 * canvasWidth;
         final double horizontalLineLength = canvasWidth - 2 * horizontalPadding;
-        final double verticalSpaceBetweenLines = verticalLineLength / 3;
-        final double horizontalSpaceBetweenLines = horizontalLineLength / 3;
+        verticalSpaceBetweenLines = verticalLineLength / 3;
+        horizontalSpaceBetweenLines = horizontalLineLength / 3;
 
         gc = tttCanvas.getGraphicsContext2D();
-        drawEmptyBoard(horizontalPadding, horizontalSpaceBetweenLines, verticalPadding, verticalSpaceBetweenLines);
+        drawEmptyBoard();
 
         ClickAreaMapper = new ClickAreaMapper();
         ClickAreaMapper.setBoardStartX(horizontalPadding);
         ClickAreaMapper.setBoardStartY(verticalPadding);
         ClickAreaMapper.initAreas(horizontalSpaceBetweenLines, verticalSpaceBetweenLines, gc.getLineWidth());
-
         initClickHandler();
         setMouseClickHandlerToCanvas();
     }
@@ -74,8 +88,11 @@ public class TttViewController {
             final ClickArea clickArea = ClickAreaMapper.getClickedArea(event);
             drawCrossOrNought(clickArea);
             game.move(clickArea.getAreaNumber());
-            removeMouseClickHandlerFromCanvas();
-            handleAiMoveAsync();
+            setCurrentPlayerText();
+            if (game.getCurrentPlayer() instanceof AiPlayer) {
+                removeMouseClickHandlerFromCanvas();
+                handleAiMoveAsync();
+            }
         };
     }
 
@@ -98,11 +115,9 @@ public class TttViewController {
     }
 
     private void handleAiMoveAsync() {
-        if (game.getCurrentPlayer() instanceof AiPlayer) {
-            final Board currentBoard = game.getBoard();
-            CompletableFuture<Board> backendTaskFuture = getAskBackendForNextMoveFuture(currentBoard);
-            handleBackendFutureResult(backendTaskFuture, currentBoard);
-        }
+        final Board currentBoard = game.getBoard();
+        CompletableFuture<Board> backendTaskFuture = getAskBackendForNextMoveFuture(currentBoard);
+        handleBackendFutureResult(backendTaskFuture, currentBoard);
     }
 
     private CompletableFuture<Board> getAskBackendForNextMoveFuture(final Board currentBoard) {
@@ -127,19 +142,30 @@ public class TttViewController {
         });
     }
 
+    private void initUiControls() {
+        setCurrentPlayerText();
+        restartButton.setOnMouseClicked(event -> {
+            drawEmptyBoard();
+            initGame();
+        });
+        exitButton.setOnMouseClicked(event -> Platform.exit());
+    }
+
+    private void setCurrentPlayerText() {
+        currentPlayerLabel.setText(game.getCurrentFieldValue().getValue());
+    }
+
     private void overwriteCanvas() {
         gc.setFill(Color.WHITE);
         gc.fillRect(0, 0, tttCanvas.getWidth(), tttCanvas.getHeight());
     }
 
-    private void drawEmptyBoard(double horizontalPadding, double horizontalSpaceBetweenLines,
-                                double verticalPadding, double verticalSpaceBetweenLines) {
+    private void drawEmptyBoard() {
         overwriteCanvas();
-        drawBoardLines(horizontalPadding, horizontalSpaceBetweenLines, verticalPadding, verticalSpaceBetweenLines);
+        drawBoardLines();
     }
 
-    private void drawBoardLines(double horizontalPadding, double horizontalSpaceBetweenLines,
-                                double verticalPadding, double verticalSpaceBetweenLines) {
+    private void drawBoardLines() {
         double currentXPos = horizontalPadding + horizontalSpaceBetweenLines;
         double currentYPos = verticalPadding + verticalSpaceBetweenLines;
         gc.setStroke(Color.BLUE);

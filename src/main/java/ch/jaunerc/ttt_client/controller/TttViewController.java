@@ -2,6 +2,7 @@ package ch.jaunerc.ttt_client.controller;
 
 import ch.jaunerc.ttt_client.jersey.RestConnectionHandler;
 import ch.jaunerc.ttt_client.tictactoe.*;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -9,7 +10,11 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 
 import java.net.URI;
+import java.util.concurrent.CompletableFuture;
 
+/**
+ * This class represents a controller for the tic tac toe view.
+ */
 public class TttViewController {
 
     @FXML
@@ -17,11 +22,11 @@ public class TttViewController {
 
     private Game game;
     private GraphicsContext gc;
-    private MouseClickHandler mouseClickHandler;
+    private ClickAreaMapper ClickAreaMapper;
+    private EventHandler<MouseEvent> mouseClickEventHandler;
     private RestConnectionHandler restConnectionHandler;
 
     public TttViewController() {
-
     }
 
     @FXML
@@ -55,19 +60,31 @@ public class TttViewController {
         gc = tttCanvas.getGraphicsContext2D();
         drawEmptyBoard(horizontalPadding, horizontalSpaceBetweenLines, verticalPadding, verticalSpaceBetweenLines);
 
-        mouseClickHandler = new MouseClickHandler();
-        mouseClickHandler.setBoardStartX(horizontalPadding);
-        mouseClickHandler.setBoardStartY(verticalPadding);
-        mouseClickHandler.initAreas(horizontalSpaceBetweenLines, verticalSpaceBetweenLines, gc.getLineWidth());
+        ClickAreaMapper = new ClickAreaMapper();
+        ClickAreaMapper.setBoardStartX(horizontalPadding);
+        ClickAreaMapper.setBoardStartY(verticalPadding);
+        ClickAreaMapper.initAreas(horizontalSpaceBetweenLines, verticalSpaceBetweenLines, gc.getLineWidth());
 
-        tttCanvas.setOnMouseClicked(e -> handleMouseClick(e));
+        initClickHandler();
+        setMouseClickHandlerToCanvas();
     }
 
-    private void handleMouseClick(final MouseEvent event) {
-        final ClickArea clickArea = mouseClickHandler.getClickedArea(event);
-        drawCrossOrNought(clickArea);
-        game.move(clickArea.getAreaNumber());
-        handleAiMove();
+    private void initClickHandler() {
+        mouseClickEventHandler = (event) -> {
+            final ClickArea clickArea = ClickAreaMapper.getClickedArea(event);
+            drawCrossOrNought(clickArea);
+            game.move(clickArea.getAreaNumber());
+            removeMouseClickHandlerFromCanvas();
+            handleAiMoveAsync();
+        };
+    }
+
+    private void setMouseClickHandlerToCanvas() {
+        tttCanvas.addEventHandler(MouseEvent.MOUSE_CLICKED, mouseClickEventHandler);
+    }
+
+    private void removeMouseClickHandlerFromCanvas() {
+        tttCanvas.removeEventHandler(MouseEvent.MOUSE_CLICKED, mouseClickEventHandler);
     }
 
     private void drawCrossOrNought(final ClickArea clickArea) {
@@ -80,22 +97,34 @@ public class TttViewController {
         }
     }
 
-    private void handleAiMove() {
+    private void handleAiMoveAsync() {
         if (game.getCurrentPlayer() instanceof AiPlayer) {
-            System.out.println("Ai turn");
-            final Board current = game.getBoard();
-            final Board next = restConnectionHandler.getNextTurn(current);
-            final String[] currentBoard = current.getBoard();
-            final String[] nextBoard = next.getBoard();
-            for (int i = 0; i < nextBoard.length; i++) {
-                if (!nextBoard[i].equals(currentBoard[i])) {
-                    final ClickArea clickArea = mouseClickHandler.getAreaByIndex(i);
+            final Board currentBoard = game.getBoard();
+            CompletableFuture<Board> backendTaskFuture = getAskBackendForNextMoveFuture(currentBoard);
+            handleBackendFutureResult(backendTaskFuture, currentBoard);
+        }
+    }
+
+    private CompletableFuture<Board> getAskBackendForNextMoveFuture(final Board currentBoard) {
+        return CompletableFuture.supplyAsync(() ->
+                restConnectionHandler.getNextTurn(currentBoard)
+        );
+    }
+
+    private void handleBackendFutureResult(final CompletableFuture<Board> backendFuture, final Board currentBoard) {
+        backendFuture.thenAccept(nextBoard -> {
+            final String[] currentValues = currentBoard.getBoard();
+            final String[] nextValues = nextBoard.getBoard();
+            for (int i = 0; i < nextValues.length; i++) {
+                if (!nextValues[i].equals(currentValues[i])) {
+                    ClickArea clickArea = ClickAreaMapper.getAreaByIndex(i);
                     drawCrossOrNought(clickArea);
                     game.move(i);
                     break;
                 }
             }
-        }
+            setMouseClickHandlerToCanvas();
+        });
     }
 
     private void overwriteCanvas() {

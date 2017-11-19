@@ -17,8 +17,8 @@ public class TttApp extends Application {
     @Override
     public void start(Stage primaryStage) throws IOException {
         Parent root = FXMLLoader.load(getClass().getResource("/views/ttt_view.fxml"));
-        primaryStage.setTitle("TTT Client");
-        primaryStage.setScene(new Scene(root, 300, 275));
+        primaryStage.setTitle("Tic Tac Toe Client");
+        primaryStage.setScene(new Scene(root, 600, 500));
         primaryStage.show();
     }
 }

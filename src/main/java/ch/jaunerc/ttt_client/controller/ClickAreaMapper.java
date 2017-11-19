@@ -6,14 +6,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This class represents a handler for mouse click events in the tic tac toe canvas.
+ * This class represents a mapper for click events.
  */
-public class MouseClickHandler {
+public class ClickAreaMapper {
 
     private double boardStartX, boardStartY;
     private List<ClickArea> areas;
 
-    public MouseClickHandler() {
+    public ClickAreaMapper() {
         areas = new ArrayList<>();
     }
 
@@ -44,6 +44,12 @@ public class MouseClickHandler {
         }
     }
 
+    /**
+     * Gets the clicked area based on the MouseEvent coordinates.
+     *
+     * @param event Mouse click event.
+     * @return Click area.
+     */
     public ClickArea getClickedArea(final MouseEvent event) {
         return areas.stream()
                 .filter(area -> area.isInside(event.getX(), event.getY()))

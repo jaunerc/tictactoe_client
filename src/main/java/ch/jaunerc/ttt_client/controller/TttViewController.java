@@ -135,6 +135,7 @@ public class TttViewController {
                     ClickArea clickArea = ClickAreaMapper.getAreaByIndex(i);
                     drawCrossOrNought(clickArea);
                     game.move(i);
+                    Platform.runLater(() -> setCurrentPlayerText());    // Execution on FX thread
                     break;
                 }
             }

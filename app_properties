@@ -1,0 +1,5 @@
+#Properties for Tic Tac Toe client
+#Mon Nov 20 16:41:03 CET 2017
+backend_path=minimax
+backend_port=8080
+backend_address=localhost

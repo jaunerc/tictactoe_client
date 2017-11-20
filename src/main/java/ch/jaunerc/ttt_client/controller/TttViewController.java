@@ -1,5 +1,6 @@
 package ch.jaunerc.ttt_client.controller;
 
+import ch.jaunerc.ttt_client.helper.AppProperties;
 import ch.jaunerc.ttt_client.jersey.RestConnectionHandler;
 import ch.jaunerc.ttt_client.tictactoe.*;
 import javafx.application.Platform;
@@ -48,6 +49,7 @@ public class TttViewController {
         initGame();
         initCanvas();
         initUiControls();
+        initRestConnection();
     }
 
     private void initGame() {
@@ -55,10 +57,22 @@ public class TttViewController {
         final Player playerOne = new Player(FieldValue.NOUGHT);
         final AiPlayer playerTwo = new AiPlayer(FieldValue.CROSS);
         game = new Game(board, playerOne, playerTwo);
+    }
+
+    private void initRestConnection() {
+        StringBuilder stringBuilder = new StringBuilder();
+        AppProperties appProperties = new AppProperties();
         try {
-            restConnectionHandler = new RestConnectionHandler(new URI("http://localhost:8080/minimax"));
+            appProperties.loadPropertiesFromFile(AppProperties.DEFAULT_FILENAME);
+            stringBuilder.append("http://");
+            stringBuilder.append(appProperties.getPropertyByName(AppProperties.PropertyInfo.BACKEND_ADDRESS));
+            stringBuilder.append(":");
+            stringBuilder.append(appProperties.getPropertyByName(AppProperties.PropertyInfo.BACKEND_PORT));
+            stringBuilder.append("/");
+            stringBuilder.append(appProperties.getPropertyByName(AppProperties.PropertyInfo.BACKEND_PATH));
+            restConnectionHandler = new RestConnectionHandler(new URI(stringBuilder.toString()));
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println(e.getMessage());
         }
     }
 

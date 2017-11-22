@@ -35,15 +35,18 @@ public class Game {
     private void handleMove(final int boardPos) {
         board.setValueAt(boardPos, currentPlayer.getFieldValue());
         evaluateBoard();
+    }
+
+    private void evaluateBoard() {
+        boardSituation = BoardEvaluator.evaluateBoard(board);
+    }
+
+    public void changeCurrentPlayer() {
         if (boardSituation == BoardEvaluator.BoardSituation.OPEN) {
             switchPlayers();
         } else {
             gameState = GameState.OVER;
         }
-    }
-
-    private void evaluateBoard() {
-        boardSituation = BoardEvaluator.evaluateBoard(board);
     }
 
     private void switchPlayers() {

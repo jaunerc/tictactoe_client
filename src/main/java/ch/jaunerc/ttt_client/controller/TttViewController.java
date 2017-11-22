@@ -100,14 +100,23 @@ public class TttViewController {
     private void initClickHandler() {
         mouseClickEventHandler = (event) -> {
             final ClickArea clickArea = ClickAreaMapper.getClickedArea(event);
-            drawCrossOrNought(clickArea);
-            game.move(clickArea.getAreaNumber());
-            setCurrentPlayerText();
-            if (game.getCurrentPlayer() instanceof AiPlayer) {
-                removeMouseClickHandlerFromCanvas();
-                handleAiMoveAsync();
+            try {
+                doMoveInGame(clickArea);
+                setCurrentPlayerText();
+                if (game.getCurrentPlayer() instanceof AiPlayer) {
+                    removeMouseClickHandlerFromCanvas();
+                    handleAiMoveAsync();
+                }
+            } catch (IllegalArgumentException e) {
+                System.err.println("The position is illegal :-(");
             }
         };
+    }
+
+    private void doMoveInGame(final ClickArea clickArea) throws IllegalArgumentException {
+        game.move(clickArea.getAreaNumber());
+        drawCrossOrNought(clickArea);
+        game.changeCurrentPlayer();
     }
 
     private void setMouseClickHandlerToCanvas() {
@@ -147,8 +156,7 @@ public class TttViewController {
             for (int i = 0; i < nextValues.length; i++) {
                 if (!nextValues[i].equals(currentValues[i])) {
                     ClickArea clickArea = ClickAreaMapper.getAreaByIndex(i);
-                    drawCrossOrNought(clickArea);
-                    game.move(i);
+                    doMoveInGame(clickArea);
                     Platform.runLater(() -> setCurrentPlayerText());    // Execution on FX thread
                     break;
                 }

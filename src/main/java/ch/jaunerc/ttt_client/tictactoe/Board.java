@@ -26,9 +26,17 @@ public class Board {
 
     public void setValueAt(final int pos, final FieldValue fieldValue) throws IllegalArgumentException {
         if (pos >= 0 && pos < board.length) {
-            board[pos] = fieldValue.getValue();
+            if (isPositionFree(pos)) {
+                board[pos] = fieldValue.getValue();
+            } else {
+                throw new IllegalArgumentException("The position is not free.");
+            }
         } else {
             throw new IllegalArgumentException("The board position is out of bounds.");
         }
+    }
+
+    private boolean isPositionFree(final int pos) {
+        return board[pos].equals(FieldValue.EMPTY.getValue());
     }
 }
